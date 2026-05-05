@@ -1,60 +1,85 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>唐代县尉检索系统</title>
+<meta charset="UTF-8">
+<title>唐代县尉检索系统</title>
+<style>
+table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+th { background: #f0f0f0; }
+</style>
 </head>
 <body>
-    <h1>唐代县尉检索</h1>
 
-    <form id="searchForm">
-        <select name="name" id="nameSelect">
-            <option value="">-- 请选择姓名 --</option>
-        </select>
-        <button type="submit">搜索</button>
-    </form>
+<h1>唐代县尉检索系统</h1>
 
-    <div id="result"></div>
+<form id="searchForm">
+  <select id="nameSelect">
+    <option value="">-- 请选择姓名 --</option>
+  </select>
+  <button type="submit">检索</button>
+</form>
 
-    <script>
-        // 加载姓名列表
-        fetch("/api/all_names")
-        .then(res => res.json())
-        .then(data => {
-            const select = document.getElementById("nameSelect");
-            data.names.forEach(name => {
-                const opt = document.createElement("option");
-                opt.value = name;
-                opt.textContent = name;
-                select.appendChild(opt);
-            });
-        });
+<table id="resultTable">
+  <thead>
+    <tr>
+      <th>姓名</th>
+      <th>任职县</th>
+      <th>史料内容</th>
+      <th>出处</th>
+      <th>备注</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-        // 搜索
-        document.getElementById("searchForm").onsubmit = async function(e) {
-            e.preventDefault();
-            const name = document.getElementById("nameSelect").value;
-            const res = await fetch("/search", {
-                method: "POST",
-                headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                body: "name=" + encodeURIComponent(name)
-            });
-            const data = await res.json();
-            let html = "<table border='1'><tr>";
-            if (data.length > 0) {
-                Object.keys(data[0]).forEach(k => html += `<th>${k}</th>`);
-                html += "</tr>";
-                data.forEach(row => {
-                    html += "<tr>";
-                    Object.values(row).forEach(v => html += `<td>${v}</td>`);
-                    html += "</tr>";
-                });
-            } else {
-                html += "<tr><td>未找到记录</td></tr>";
-            }
-            html += "</table>";
-            document.getElementById("result").innerHTML = html;
-        };
-    </script>
+<script>
+const xianweiData = [
+  // ✅ 把你 764 行 CSV 转换后的数据粘贴到这里
+  {
+    name: "刘仁轨",
+    county: "陈仓县",
+    content: "劉仁軌,字正則……",
+    source: "貞觀政要10卷……",
+    note: "未见使职差遣现象……"
+  }
+];
+
+// 填充姓名下拉框
+const select = document.getElementById("nameSelect");
+xianweiData.forEach(d => {
+  const opt = document.createElement("option");
+  opt.value = d.name;
+  opt.textContent = d.name;
+  select.appendChild(opt);
+});
+
+// 搜索
+document.getElementById("searchForm").onsubmit = e => {
+  e.preventDefault();
+  const name = select.value;
+  const result = xianweiData.filter(
+    d => !name || d.name === name
+  );
+  renderTable(result);
+};
+
+function renderTable(data) {
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = "";
+  data.forEach(row => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${row.name}</td>
+        <td>${row.county}</td>
+        <td>${row.content}</td>
+        <td>${row.source}</td>
+        <td>${row.note}</td>
+      </tr>
+    `;
+  });
+}
+</script>
+
 </body>
 </html>
