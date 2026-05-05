@@ -1,85 +1,182 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>唐代县尉检索系统</title>
-<style>
-table { border-collapse: collapse; width: 100%; margin-top: 1em; }
-th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-th { background: #f0f0f0; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>唐代县尉检索系统</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .search-box {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #0366d6;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #024ea2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #0366d6;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .loading, .error {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
 </head>
 <body>
 
-<h1>唐代县尉检索系统</h1>
+    <h1>唐代县尉检索系统</h1>
 
-<form id="searchForm">
-  <select id="nameSelect">
-    <option value="">-- 请选择姓名 --</option>
-  </select>
-  <button type="submit">检索</button>
-</form>
+    <div class="search-box">
+        <select id="nameSelect">
+            <!-- 姓名选项将通过 JS 动态填充 -->
+        </select>
+        <button onclick="search()">搜索</button>
+    </div>
 
-<table id="resultTable">
-  <thead>
-    <tr>
-      <th>姓名</th>
-      <th>任职县</th>
-      <th>史料内容</th>
-      <th>出处</th>
-      <th>备注</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <div id="resultContainer">
+        <!-- 搜索结果表格将在这里显示 -->
+    </div>
 
-<script>
-const xianweiData = [
-  // ✅ 把你 764 行 CSV 转换后的数据粘贴到这里
-  {
-    name: "刘仁轨",
-    county: "陈仓县",
-    content: "劉仁軌,字正則……",
-    source: "貞觀政要10卷……",
-    note: "未见使职差遣现象……"
-  }
-];
+    <script>
+        let allData = []; // 用于存储从 convertcsv.json 加载的所有数据
 
-// 填充姓名下拉框
-const select = document.getElementById("nameSelect");
-xianweiData.forEach(d => {
-  const opt = document.createElement("option");
-  opt.value = d.name;
-  opt.textContent = d.name;
-  select.appendChild(opt);
-});
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
 
-// 搜索
-document.getElementById("searchForm").onsubmit = e => {
-  e.preventDefault();
-  const name = select.value;
-  const result = xianweiData.filter(
-    d => !name || d.name === name
-  );
-  renderTable(result);
-};
+        // 1. 加载数据（关键修改点：路径改为 convertcsv.json）
+        function loadData() {
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = '<div class="loading">正在加载数据...</div>';
 
-function renderTable(data) {
-  const tbody = document.querySelector("#resultTable tbody");
-  tbody.innerHTML = "";
-  data.forEach(row => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${row.name}</td>
-        <td>${row.county}</td>
-        <td>${row.content}</td>
-        <td>${row.source}</td>
-        <td>${row.note}</td>
-      </tr>
-    `;
-  });
-}
-</script>
+            // ✅ 修改点：fetch 请求的文件名改为 convertcsv.json
+            fetch('/convertcsv.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('无法加载 convertcsv.json 文件，请检查文件路径是否正确。');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allData = data;
+                    populateDropdown(data);
+                    container.innerHTML = '<p style="text-align:center;">请选择姓名进行检索。</p>';
+                })
+                .catch(error => {
+                    container.innerHTML = `<div class="error">${error.message}</div>`;
+                    console.error('Error loading data:', error);
+                });
+        }
+
+        // 2. 填充下拉菜单
+        function populateDropdown(data) {
+            const select = document.getElementById('nameSelect');
+            select.innerHTML = '<option value="">-- 请选择姓名 --</option>';
+            
+            const names = [...new Set(data.map(item => item.name))];
+            
+            names.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        // 3. 搜索函数
+        function search() {
+            const name = document.getElementById('nameSelect').value;
+            const container = document.getElementById('resultContainer');
+
+            if (!name) {
+                alert('请先选择一个姓名！');
+                return;
+            }
+
+            // 前端本地筛选数据
+            const results = allData.filter(item => item.name === name);
+            
+            renderTable(results);
+        }
+
+        // 4. 渲染结果表格
+        function renderTable(data) {
+            const container = document.getElementById('resultContainer');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p style="text-align:center;">未找到相关记录。</p>';
+                return;
+            }
+
+            const headers = ['姓名', '任职县', '史料内容', '文献出处', '备注'];
+            const keys = ['name', 'county', 'content', 'source', 'note'];
+
+            let html = '<table><thead><tr>';
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr>';
+                keys.forEach(key => {
+                    const cellValue = row[key] !== undefined ? row[key] : '';
+                    html += `<td>${cellValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    </script>
 
 </body>
 </html>
