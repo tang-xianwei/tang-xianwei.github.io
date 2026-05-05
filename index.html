@@ -1,28 +1,60 @@
-<!DOCTYPE html>` 到 `</html>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Site</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
-        }
-        p {
-            color: #666;
-        }
-    </style>
+    <title>唐代县尉检索系统</title>
 </head>
 <body>
-    <h1>Hello, World!</h1>
-    <p>This is my personal website hosted on GitHub Pages.</p>
-    <p>More content coming soon...</p>
+    <h1>唐代县尉检索</h1>
+
+    <form id="searchForm">
+        <select name="name" id="nameSelect">
+            <option value="">-- 请选择姓名 --</option>
+        </select>
+        <button type="submit">搜索</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        // 加载姓名列表
+        fetch("/api/all_names")
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById("nameSelect");
+            data.names.forEach(name => {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        });
+
+        // 搜索
+        document.getElementById("searchForm").onsubmit = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById("nameSelect").value;
+            const res = await fetch("/search", {
+                method: "POST",
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body: "name=" + encodeURIComponent(name)
+            });
+            const data = await res.json();
+            let html = "<table border='1'><tr>";
+            if (data.length > 0) {
+                Object.keys(data[0]).forEach(k => html += `<th>${k}</th>`);
+                html += "</tr>";
+                data.forEach(row => {
+                    html += "<tr>";
+                    Object.values(row).forEach(v => html += `<td>${v}</td>`);
+                    html += "</tr>";
+                });
+            } else {
+                html += "<tr><td>未找到记录</td></tr>";
+            }
+            html += "</table>";
+            document.getElementById("result").innerHTML = html;
+        };
+    </script>
 </body>
 </html>
